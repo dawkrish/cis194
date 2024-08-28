@@ -1,6 +1,8 @@
 {- CIS 194 HW 10
    due Monday, 1 April
 -}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use tuple-section" #-}
 
 module AParser where
 
@@ -57,3 +59,17 @@ posInt = Parser f
 ------------------------------------------------------------
 -- Your code goes below here
 ------------------------------------------------------------
+
+-- newtype Parser a = Parser {runParser :: String -> Maybe (a, String)}
+
+instance Functor Parser where
+  fmap g (Parser p) = Parser (helper g . p)
+
+helper :: (a -> b) -> Maybe (a, String) -> Maybe (b, String)
+helper g Nothing = Nothing
+helper g (Just (x, y)) = Just (g x, y)
+
+instance Applicative Parser where
+  pure x = Parser (\y -> Just (x, y))
+  (Parser g) <*> (Parser p) = Parser (\x -> Nothing)
+
