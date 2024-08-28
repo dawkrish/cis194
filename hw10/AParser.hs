@@ -80,7 +80,7 @@ abParser :: Parser (Char, Char)
 abParser = (,) <$> char 'a' <*> char 'b'
 
 abParser_ :: Parser ()
-abParser_ = fmap (const ()) abParser
+abParser_ = const () <$> abParser
 
 intPair :: Parser [Integer]
 intPair = (\a _ b -> [a, b]) <$> posInt <*> char ' ' <*> posInt
@@ -89,12 +89,8 @@ instance Alternative Parser where
   empty = Parser (const Nothing)
   (<|>) p1 p2 = Parser p
     where
-      p xs = case runParser p1 xs of
-        Just (m, n) -> Just (m, n)
-        Nothing -> case runParser p2 xs of
-          Just (m', n') -> Just (m', n')
-          Nothing -> Nothing
+        p xs = runParser p1 xs <|> runParser p2 xs
 
 
 intOrUpper :: Parser ()
-intOrUpper = (const () <$> posInt) <|> (const ()) <$> satisfy isUpper
+intOrUpper = const () <$> posInt <|> const () <$> satisfy isUpper
