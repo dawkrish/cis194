@@ -2,6 +2,7 @@
    due Monday, 1 April
 -}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 {-# HLINT ignore "Use tuple-section" #-}
 
 module AParser where
@@ -60,16 +61,40 @@ posInt = Parser f
 -- Your code goes below here
 ------------------------------------------------------------
 
--- newtype Parser a = Parser {runParser :: String -> Maybe (a, String)}
-
 instance Functor Parser where
-  fmap g (Parser p) = Parser (helper g . p)
-
-helper :: (a -> b) -> Maybe (a, String) -> Maybe (b, String)
-helper g Nothing = Nothing
-helper g (Just (x, y)) = Just (g x, y)
+  fmap g p = Parser f
+    where
+      f xs = case runParser p xs of
+        Nothing -> Nothing
+        Just (m, n) -> Just (g m, n)
 
 instance Applicative Parser where
   pure x = Parser (\y -> Just (x, y))
-  (Parser g) <*> (Parser p) = Parser (\x -> Nothing)
+  (<*>) p1 p2 = Parser f1
+    where
+      f1 xs = case runParser p1 xs of
+        Nothing -> Nothing
+        Just (f2, ys) -> runParser (fmap f2 p2) ys
 
+abParser :: Parser (Char, Char)
+abParser = (,) <$> char 'a' <*> char 'b'
+
+abParser_ :: Parser ()
+abParser_ = fmap (const ()) abParser
+
+intPair :: Parser [Integer]
+intPair = (\a _ b -> [a, b]) <$> posInt <*> char ' ' <*> posInt
+
+instance Alternative Parser where
+  empty = Parser (const Nothing)
+  (<|>) p1 p2 = Parser p
+    where
+      p xs = case runParser p1 xs of
+        Just (m, n) -> Just (m, n)
+        Nothing -> case runParser p2 xs of
+          Just (m', n') -> Just (m', n')
+          Nothing -> Nothing
+
+
+intOrUpper :: Parser ()
+intOrUpper = (const () <$> posInt) <|> (const ()) <$> satisfy isUpper
